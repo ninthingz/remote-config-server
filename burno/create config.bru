@@ -1,0 +1,20 @@
+meta {
+  name: create config
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{server_addr}}/config
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "联想:GetLightDNP:点检时间间隔",
+    "value": "24",
+    "message": "联想点检时间间隔",
+    "secret": ""
+  }
+}
