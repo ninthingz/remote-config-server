@@ -1,0 +1,15 @@
+meta {
+  name: get_config
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{server_addr}}/config/element?name=联想:GetLightDNP:点检时间间隔
+  body: none
+  auth: none
+}
+
+params:query {
+  name: 联想:GetLightDNP:点检时间间隔
+}

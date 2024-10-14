@@ -1,0 +1,15 @@
+meta {
+  name: list_config
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{server_addr}}/config?keyword
+  body: none
+  auth: none
+}
+
+params:query {
+  keyword: 
+}
