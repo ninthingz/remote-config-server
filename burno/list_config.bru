@@ -5,11 +5,13 @@ meta {
 }
 
 get {
-  url: {{server_addr}}/config?keyword
+  url: {{server_addr}}/config?keyword&pageSize=10&pageIndex=1
   body: none
   auth: none
 }
 
 params:query {
   keyword: 
+  pageSize: 10
+  pageIndex: 1
 }

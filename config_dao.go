@@ -20,7 +20,7 @@ type ConfigDao struct {
 
 var configDao = &ConfigDao{}
 
-func (dao *ConfigDao) create(config Config) error {
+func (dao *ConfigDao) create(config Config, nickname string) error {
 	_, err := db.Exec("INSERT INTO config(name, value, message, secret, enable) VALUES(?, ?, ?, ?, ?)", config.Name, config.Value, config.Message, config.Secret, config.Enable)
 	if err != nil {
 		return err
@@ -34,6 +34,7 @@ func (dao *ConfigDao) create(config Config) error {
 		ConfigId:   selectConfig.Id,
 		OldValue:   "",
 		NewValue:   selectConfig.Value,
+		Nickname:   nickname,
 		Enable:     selectConfig.Enable,
 		CreateTime: int(time.Now().Unix()),
 	}
@@ -46,7 +47,7 @@ func (dao *ConfigDao) create(config Config) error {
 	return nil
 }
 
-func (dao *ConfigDao) update(config Config) error {
+func (dao *ConfigDao) update(config Config, nickname string) error {
 
 	oldConfig, err := configDao.get(config.Id)
 	if err != nil {
@@ -58,10 +59,15 @@ func (dao *ConfigDao) update(config Config) error {
 		return err
 	}
 
+	if oldConfig.Value == config.Value && oldConfig.Enable == oldConfig.Enable {
+		return nil
+	}
+
 	configHistory := ConfigHistory{
 		ConfigId:   config.Id,
 		OldValue:   oldConfig.Value,
 		NewValue:   config.Value,
+		Nickname:   nickname,
 		Enable:     config.Enable,
 		CreateTime: int(time.Now().Unix()),
 	}
@@ -91,8 +97,8 @@ func (dao *ConfigDao) get(id int) (*Config, error) {
 	return &config, nil
 }
 
-func (dao *ConfigDao) list() ([]*Config, error) {
-	rows, err := db.Query("SELECT * FROM config")
+func (dao *ConfigDao) list(keyword string, pageSize int, pageIndex int) ([]*Config, error) {
+	rows, err := db.Query("SELECT * FROM config WHERE name LIKE ? ORDER BY name ASC LIMIT ? OFFSET ?", "%"+keyword+"%", pageSize, pageSize*(pageIndex-1))
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +120,15 @@ func (dao *ConfigDao) list() ([]*Config, error) {
 		configList = append(configList, &config)
 	}
 	return configList, nil
+}
+
+func (dao *ConfigDao) getCount(keyword string) (int, error) {
+	var count int
+	err := db.QueryRow("SELECT count(*) FROM config WHERE name LIKE ?", "%"+keyword+"%").Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (dao *ConfigDao) getByName(name string) (*Config, error) {

@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"strings"
+	"strconv"
 )
 
 var configMap = make(map[string]*Config)
@@ -11,6 +11,12 @@ var sign = "0D000721"
 
 func main() {
 	var err error
+
+	err = initTask()
+	if err != nil {
+		println(err.Error())
+		return
+	}
 
 	err = openDatabase()
 	if err != nil {
@@ -33,11 +39,52 @@ func main() {
 	r.DELETE("/config", deleteConfig)
 	r.GET("/config", listConfig)
 	r.GET("/config/element", getConfig)
+	r.GET("/config/:id/history", getConfigHistory)
+	r.POST("/cbs_user/login", cbsUserLogin)
+	r.POST("/cbs_user/logout", cbsUserLogout)
+	r.GET("/cbs_user/info", cbsUserInfo)
 	err = r.Run(":19200")
 	if err != nil {
 		println(err.Error())
 		return
 	}
+}
+
+func getConfigHistory(context *gin.Context) {
+	id, err := strconv.Atoi(context.Param("id"))
+	if err != nil {
+		context.JSON(200, gin.H{"code": 500, "message": "id is required"})
+		return
+	}
+	pageSize, err := strconv.Atoi(context.Query("pageSize"))
+	if err != nil {
+		context.JSON(200, gin.H{"code": 500, "message": "pageSize is required"})
+		return
+	}
+
+	pageIndex, err := strconv.Atoi(context.Query("pageIndex"))
+	if err != nil {
+		context.JSON(200, gin.H{"code": 500, "message": "pageIndex is required"})
+		return
+	}
+
+	list, err := configHistoryDao.list(id, pageSize, pageIndex)
+	if err != nil {
+		context.JSON(200, gin.H{"code": 500, "message": err.Error()})
+		return
+	}
+
+	count, err := configHistoryDao.getCount(id)
+	if err != nil {
+		context.JSON(200, gin.H{"code": 500, "message": err.Error()})
+		return
+	}
+
+	context.JSON(200, gin.H{"code": 200, "data": gin.H{
+		"list":  list,
+		"count": count,
+	}})
+	return
 }
 
 func getConfig(context *gin.Context) {
@@ -55,23 +102,36 @@ func getConfig(context *gin.Context) {
 
 func listConfig(context *gin.Context) {
 	keyword := context.Query("keyword")
-	if keyword == "" {
-		var configList = make([]*Config, 0)
-		for _, config := range configMap {
-			configList = append(configList, config)
-		}
-		context.JSON(200, gin.H{"code": 200, "data": configList})
+	pageSize, err := strconv.Atoi(context.Query("pageSize"))
+
+	if err != nil {
+		context.JSON(200, gin.H{"code": 500, "message": "pageSize is required"})
 		return
 	}
 
-	var configList = make([]*Config, 0)
-	for _, config := range configMap {
-		if strings.Contains(config.Name, keyword) {
-			configList = append(configList, config)
-		}
+	pageIndex, err := strconv.Atoi(context.Query("pageIndex"))
+
+	if err != nil {
+		context.JSON(200, gin.H{"code": 500, "message": "pageIndex is required"})
+		return
 	}
 
-	context.JSON(200, gin.H{"code": 200, "data": configList})
+	list, err := configDao.list(keyword, pageSize, pageIndex)
+	if err != nil {
+		context.JSON(200, gin.H{"code": 500, "message": err.Error()})
+		return
+	}
+
+	count, err := configDao.getCount(keyword)
+	if err != nil {
+		context.JSON(200, gin.H{"code": 500, "message": err.Error()})
+		return
+	}
+
+	context.JSON(200, gin.H{"code": 200, "data": gin.H{
+		"list":  list,
+		"count": count,
+	}})
 	return
 
 }
@@ -108,12 +168,14 @@ func updateConfig(context *gin.Context) {
 		return
 	}
 
-	if configMap[config.Name] == nil {
+	oldConfig := configMap[config.Name]
+	if oldConfig == nil {
 		context.JSON(200, gin.H{"code": 500, "message": "config not found"})
 		return
 	}
 
-	err = configDao.update(config)
+	userInfo := cbsTokenUserInfoMap[context.GetHeader("Authorization")]
+	err = configDao.update(config, userInfo.Nickname)
 	if err != nil {
 		context.JSON(200, gin.H{"code": 500, "message": err.Error()})
 		return
@@ -143,7 +205,8 @@ func createConfig(context *gin.Context) {
 		return
 	}
 
-	err = configDao.create(config)
+	userInfo := cbsTokenUserInfoMap[context.GetHeader("Authorization")]
+	err = configDao.create(config, userInfo.Nickname)
 	if err != nil {
 		context.JSON(200, gin.H{"code": 500, "message": err.Error()})
 		return
@@ -161,7 +224,7 @@ func createConfig(context *gin.Context) {
 }
 
 func loadConfig() error {
-	configList, err := configDao.list()
+	configList, err := configDao.list("", 1000000, 1)
 	if err != nil {
 		return err
 	}
@@ -182,16 +245,5 @@ func Cors() gin.HandlerFunc {
 		}
 
 		c.Next()
-	}
-}
-
-func Authorization() gin.HandlerFunc {
-	return func(context *gin.Context) {
-		requestSign := context.GetHeader("SIGN")
-		if requestSign != sign {
-			context.AbortWithStatusJSON(200, gin.H{"code": 500, "message": "sign error"})
-			return
-		}
-		context.Next()
 	}
 }

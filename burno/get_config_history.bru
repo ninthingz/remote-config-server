@@ -1,0 +1,20 @@
+meta {
+  name: get_config_history
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{server_addr}}/config/:id/history?pageSize=10&pageIndex=1
+  body: none
+  auth: none
+}
+
+params:query {
+  pageSize: 10
+  pageIndex: 1
+}
+
+params:path {
+  id: 1
+}
