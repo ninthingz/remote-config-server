@@ -83,6 +83,10 @@ func getConfigHistory(context *gin.Context) {
 		return
 	}
 
+	if list == nil {
+		list = []*ConfigHistory{}
+	}
+
 	context.JSON(200, gin.H{"code": 200, "data": gin.H{
 		"list":  list,
 		"count": count,
@@ -144,6 +148,10 @@ func listConfig(context *gin.Context) {
 	if err != nil {
 		context.JSON(200, gin.H{"code": 500, "message": err.Error()})
 		return
+	}
+
+	if list == nil {
+		list = []*Config{}
 	}
 
 	context.JSON(200, gin.H{"code": 200, "data": gin.H{

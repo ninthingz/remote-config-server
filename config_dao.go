@@ -24,7 +24,7 @@ var configDao = &ConfigDao{}
 
 func (dao *ConfigDao) create(config Config, nickname string) error {
 	config.LastGetTime = time.Now().Unix()
-	_, err := db.Exec("INSERT INTO config(name, value, message, secret, last_get_time, enable) VALUES(?, ?, ?, ?, ?)", config.Name, config.Value, config.Message, config.Secret, config.LastGetTime, config.Enable)
+	_, err := db.Exec("INSERT INTO config(name, value, message, secret, last_get_time, enable) VALUES(?, ?, ?, ?, ?, ?)", config.Name, config.Value, config.Message, config.Secret, config.LastGetTime, config.Enable)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func (dao *ConfigDao) delete(id int) error {
 
 func (dao *ConfigDao) get(id int) (*Config, error) {
 	var config Config
-	err := db.QueryRow("SELECT * FROM config WHERE id = ?", id).Scan(&config.Id, &config.Name, &config.Value, &config.Message, &config.Secret, &config.Enable)
+	err := db.QueryRow("SELECT * FROM config WHERE id = ?", id).Scan(&config.Id, &config.Name, &config.Value, &config.Message, &config.Secret, &config.LastGetTime, &config.Enable)
 	if err != nil {
 		return nil, err
 	}
