@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"strconv"
+	"time"
 )
 
 var configMap = make(map[string]*Config)
@@ -33,17 +34,19 @@ func main() {
 
 	r := gin.Default()
 	r.Use(Cors())
-	r.Use(Authorization())
-	r.POST("/config", createConfig)
-	r.PATCH("/config", updateConfig)
-	r.DELETE("/config", deleteConfig)
-	r.GET("/config", listConfig)
-	r.GET("/config/element", getConfig)
-	r.GET("/config/:id/history", getConfigHistory)
-	r.POST("/cbs_user/login", cbsUserLogin)
-	r.POST("/cbs_user/logout", cbsUserLogout)
-	r.GET("/cbs_user/info", cbsUserInfo)
-	err = r.Run(":19200")
+
+	groupV1 := r.Group("/api/v1")
+	groupV1.Use(Authorization())
+	groupV1.POST("/config", createConfig)
+	groupV1.PATCH("/config", updateConfig)
+	groupV1.DELETE("/config", deleteConfig)
+	groupV1.GET("/config", listConfig)
+	groupV1.GET("/config/element", getConfig)
+	groupV1.GET("/config/:id/history", getConfigHistory)
+	groupV1.POST("/cbs_user/login", cbsUserLogin)
+	groupV1.POST("/cbs_user/logout", cbsUserLogout)
+	groupV1.GET("/cbs_user/info", cbsUserInfo)
+	err = r.Run(":18680")
 	if err != nil {
 		println(err.Error())
 		return
@@ -97,6 +100,17 @@ func getConfig(context *gin.Context) {
 		context.JSON(200, gin.H{"code": 500, "message": "config not found"})
 		return
 	}
+	config := configMap[name]
+	if config.LastGetTime+60*60 < time.Now().Unix() {
+		config.LastGetTime = time.Now().Unix()
+		err := configDao.updateLastGetTime(config)
+		if err != nil {
+			context.JSON(200, gin.H{"code": 500, "message": err.Error()})
+			return
+		}
+	} else {
+		config.LastGetTime = time.Now().Unix()
+	}
 	context.JSON(200, gin.H{"code": 200, "data": configMap[name]})
 }
 
@@ -122,6 +136,10 @@ func listConfig(context *gin.Context) {
 		return
 	}
 
+	for _, config := range list {
+		config.LastGetTime = configMap[config.Name].LastGetTime
+	}
+
 	count, err := configDao.getCount(keyword)
 	if err != nil {
 		context.JSON(200, gin.H{"code": 500, "message": err.Error()})
@@ -133,7 +151,6 @@ func listConfig(context *gin.Context) {
 		"count": count,
 	}})
 	return
-
 }
 
 func deleteConfig(context *gin.Context) {

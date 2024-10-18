@@ -2,17 +2,19 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	_ "github.com/mattn/go-sqlite3"
 	"time"
 )
 
 type Config struct {
-	Id      int    `json:"id" json:"id,omitempty"`
-	Name    string `json:"name"`
-	Value   string `json:"value"`
-	Message string `json:"message"`
-	Secret  string `json:"secret"`
-	Enable  bool   `json:"enable"`
+	Id          int    `json:"id" json:"id,omitempty"`
+	Name        string `json:"name"`
+	Value       string `json:"value"`
+	Message     string `json:"message"`
+	Secret      string `json:"secret"`
+	LastGetTime int64  `json:"last_get_time" json:"last_get_time,omitempty"`
+	Enable      bool   `json:"enable"`
 }
 
 type ConfigDao struct {
@@ -21,7 +23,8 @@ type ConfigDao struct {
 var configDao = &ConfigDao{}
 
 func (dao *ConfigDao) create(config Config, nickname string) error {
-	_, err := db.Exec("INSERT INTO config(name, value, message, secret, enable) VALUES(?, ?, ?, ?, ?)", config.Name, config.Value, config.Message, config.Secret, config.Enable)
+	config.LastGetTime = time.Now().Unix()
+	_, err := db.Exec("INSERT INTO config(name, value, message, secret, last_get_time, enable) VALUES(?, ?, ?, ?, ?)", config.Name, config.Value, config.Message, config.Secret, config.LastGetTime, config.Enable)
 	if err != nil {
 		return err
 	}
@@ -36,7 +39,7 @@ func (dao *ConfigDao) create(config Config, nickname string) error {
 		NewValue:   selectConfig.Value,
 		Nickname:   nickname,
 		Enable:     selectConfig.Enable,
-		CreateTime: int(time.Now().Unix()),
+		CreateTime: time.Now().Unix(),
 	}
 
 	err = configHistoryDao.create(configHistory)
@@ -69,7 +72,7 @@ func (dao *ConfigDao) update(config Config, nickname string) error {
 		NewValue:   config.Value,
 		Nickname:   nickname,
 		Enable:     config.Enable,
-		CreateTime: int(time.Now().Unix()),
+		CreateTime: time.Now().Unix(),
 	}
 
 	err = configHistoryDao.create(configHistory)
@@ -81,7 +84,16 @@ func (dao *ConfigDao) update(config Config, nickname string) error {
 }
 
 func (dao *ConfigDao) delete(id int) error {
-	_, err := db.Exec("DELETE FROM config WHERE id = ?", id)
+	config, err := dao.get(id)
+	if err != nil {
+		return err
+	}
+
+	if config.LastGetTime+60*60*24*7 > time.Now().Unix() {
+		return errors.New("config在最近7天内被获取过，不能删除")
+	}
+
+	_, err = db.Exec("DELETE FROM config WHERE id = ?", id)
 	if err != nil {
 		return err
 	}
@@ -113,7 +125,7 @@ func (dao *ConfigDao) list(keyword string, pageSize int, pageIndex int) ([]*Conf
 	var configList []*Config
 	for rows.Next() {
 		var config Config
-		err := rows.Scan(&config.Id, &config.Name, &config.Value, &config.Message, &config.Secret, &config.Enable)
+		err := rows.Scan(&config.Id, &config.Name, &config.Value, &config.Message, &config.Secret, &config.LastGetTime, &config.Enable)
 		if err != nil {
 			return nil, err
 		}
@@ -133,9 +145,17 @@ func (dao *ConfigDao) getCount(keyword string) (int, error) {
 
 func (dao *ConfigDao) getByName(name string) (*Config, error) {
 	var config Config
-	err := db.QueryRow("SELECT * FROM config WHERE name = ?", name).Scan(&config.Id, &config.Name, &config.Value, &config.Message, &config.Secret, &config.Enable)
+	err := db.QueryRow("SELECT * FROM config WHERE name = ?", name).Scan(&config.Id, &config.Name, &config.Value, &config.Message, &config.Secret, &config.LastGetTime, &config.Enable)
 	if err != nil {
 		return nil, err
 	}
 	return &config, nil
+}
+
+func (dao *ConfigDao) updateLastGetTime(config *Config) error {
+	_, err := db.Exec("UPDATE config SET last_get_time = ? WHERE id = ?", time.Now().Unix(), config.Id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

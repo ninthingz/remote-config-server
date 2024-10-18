@@ -12,7 +12,7 @@ type ConfigHistory struct {
 	NewValue   string `json:"new_value"`
 	Nickname   string `json:"nickname"`
 	Enable     bool   `json:"enable"`
-	CreateTime int    `json:"create_time"`
+	CreateTime int64  `json:"create_time"`
 }
 
 type ConfigHistoryDao struct{}

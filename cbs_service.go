@@ -45,7 +45,8 @@ var s gocron.Scheduler
 
 func initTask() error {
 
-	s, err := gocron.NewScheduler()
+	var err error
+	s, err = gocron.NewScheduler()
 	if err != nil {
 		return err
 	}
@@ -231,10 +232,10 @@ func Authorization() gin.HandlerFunc {
 			return
 		}
 
-		if context.Request.URL.Path == "/cbs_user/login" ||
-			context.Request.URL.Path == "/cbs_user/info" ||
-			context.Request.URL.Path == "/config/element" ||
-			(context.Request.URL.Path == "/config" && context.Request.Method == "GET") {
+		if context.Request.URL.Path == "/api/v1/cbs_user/login" ||
+			context.Request.URL.Path == "/api/v1/cbs_user/info" ||
+			context.Request.URL.Path == "/api/v1/config/element" ||
+			(context.Request.URL.Path == "/api/v1/config" && context.Request.Method == "GET") {
 			context.Next()
 			return
 		}
