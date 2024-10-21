@@ -39,6 +39,7 @@ func (dao *ConfigDao) create(config Config, nickname string) error {
 		NewValue:   selectConfig.Value,
 		Nickname:   nickname,
 		Enable:     selectConfig.Enable,
+		Message:    selectConfig.Message,
 		CreateTime: time.Now().Unix(),
 	}
 
@@ -72,6 +73,7 @@ func (dao *ConfigDao) update(config Config, nickname string) error {
 		NewValue:   config.Value,
 		Nickname:   nickname,
 		Enable:     config.Enable,
+		Message:    config.Message,
 		CreateTime: time.Now().Unix(),
 	}
 

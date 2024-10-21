@@ -12,6 +12,7 @@ type ConfigHistory struct {
 	NewValue   string `json:"new_value"`
 	Nickname   string `json:"nickname"`
 	Enable     bool   `json:"enable"`
+	Message    string `json:"message"`
 	CreateTime int64  `json:"create_time"`
 }
 
@@ -20,7 +21,7 @@ type ConfigHistoryDao struct{}
 var configHistoryDao = &ConfigHistoryDao{}
 
 func (dao *ConfigHistoryDao) create(configHistory ConfigHistory) error {
-	_, err := db.Exec("INSERT INTO config_history(config_id, old_value, new_value, nickname, enable, create_time) VALUES(?, ?, ?, ?, ?, ?)", configHistory.ConfigId, configHistory.OldValue, configHistory.NewValue, configHistory.Nickname, configHistory.Enable, configHistory.CreateTime)
+	_, err := db.Exec("INSERT INTO config_history(config_id, old_value, new_value, nickname, enable, message, create_time) VALUES(?, ?, ?, ?, ?, ?, ?)", configHistory.ConfigId, configHistory.OldValue, configHistory.NewValue, configHistory.Nickname, configHistory.Enable, configHistory.Message, configHistory.CreateTime)
 	if err != nil {
 		return err
 	}
@@ -42,7 +43,7 @@ func (dao *ConfigHistoryDao) list(configId int, pageSize int, pageIndex int) ([]
 	var configHistoryList []*ConfigHistory
 	for rows.Next() {
 		var configHistory ConfigHistory
-		err := rows.Scan(&configHistory.Id, &configHistory.ConfigId, &configHistory.OldValue, &configHistory.NewValue, &configHistory.Nickname, &configHistory.Enable, &configHistory.CreateTime)
+		err := rows.Scan(&configHistory.Id, &configHistory.ConfigId, &configHistory.OldValue, &configHistory.NewValue, &configHistory.Nickname, &configHistory.Enable, &configHistory.Message, &configHistory.CreateTime)
 		if err != nil {
 			return nil, err
 		}

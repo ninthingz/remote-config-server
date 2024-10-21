@@ -10,7 +10,7 @@
  Target Server Version : 3035005 (3.35.5)
  File Encoding         : 65001
 
- Date: 18/10/2024 15:06:11
+ Date: 21/10/2024 08:25:34
 */
 
 PRAGMA foreign_keys = false;
@@ -41,6 +41,7 @@ CREATE TABLE "config_history" (
   "new_value" TEXT NOT NULL,
   "nickname" TEXT NOT NULL,
   "enable" integer NOT NULL,
+  "message" TEXT NOT NULL DEFAULT '',
   "create_time" integer NOT NULL
 );
 
