@@ -231,7 +231,12 @@ func createConfig(context *gin.Context) {
 	}
 
 	userInfo := cbsTokenUserInfoMap[context.GetHeader("Authorization")]
-	err = configDao.create(config, userInfo.Nickname)
+	if userInfo == nil {
+		err = configDao.create(config, "系统创建")
+	} else {
+		err = configDao.create(config, userInfo.Nickname)
+	}
+
 	if err != nil {
 		context.JSON(200, gin.H{"code": 500, "message": err.Error()})
 		return
