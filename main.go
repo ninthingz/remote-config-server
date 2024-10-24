@@ -134,7 +134,14 @@ func listConfig(context *gin.Context) {
 		return
 	}
 
-	list, err := configDao.list(keyword, pageSize, pageIndex)
+	orderBy := context.Query("orderBy")
+
+	sortType, err := strconv.Atoi(context.Query("sortType"))
+	if err != nil {
+		sortType = 0
+	}
+
+	list, err := configDao.list(keyword, pageSize, pageIndex, orderBy, sortType)
 	if err != nil {
 		context.JSON(200, gin.H{"code": 500, "message": err.Error()})
 		return
@@ -254,7 +261,7 @@ func createConfig(context *gin.Context) {
 }
 
 func loadConfig() error {
-	configList, err := configDao.list("", 1000000, 1)
+	configList, err := configDao.list("", 1000000, 1, "id", 1)
 	if err != nil {
 		return err
 	}

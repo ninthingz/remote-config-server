@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	_ "github.com/mattn/go-sqlite3"
 	"time"
 )
@@ -86,16 +85,7 @@ func (dao *ConfigDao) update(config Config, nickname string) error {
 }
 
 func (dao *ConfigDao) delete(id int) error {
-	config, err := dao.get(id)
-	if err != nil {
-		return err
-	}
-
-	if config.LastGetTime+60*60*24*7 > time.Now().Unix() {
-		return errors.New("config在最近7天内被获取过，不能删除")
-	}
-
-	_, err = db.Exec("DELETE FROM config WHERE id = ?", id)
+	_, err := db.Exec("DELETE FROM config WHERE id = ?", id)
 	if err != nil {
 		return err
 	}
@@ -111,8 +101,17 @@ func (dao *ConfigDao) get(id int) (*Config, error) {
 	return &config, nil
 }
 
-func (dao *ConfigDao) list(keyword string, pageSize int, pageIndex int) ([]*Config, error) {
-	rows, err := db.Query("SELECT * FROM config WHERE name LIKE ? ORDER BY name ASC LIMIT ? OFFSET ?", "%"+keyword+"%", pageSize, pageSize*(pageIndex-1))
+func (dao *ConfigDao) list(keyword string, pageSize int, pageIndex int, orderBy string, sortType int) ([]*Config, error) {
+	sortTypeStr := ""
+	if sortType == 1 {
+		sortTypeStr = "ASC"
+	} else {
+		sortTypeStr = "DESC"
+	}
+	if orderBy != "id" && orderBy != "name" && orderBy != "last_get_time" && orderBy != "enable" {
+		orderBy = "id"
+	}
+	rows, err := db.Query("SELECT * FROM config WHERE name LIKE ? ORDER BY "+orderBy+" "+sortTypeStr+" LIMIT ? OFFSET ?", "%"+keyword+"%", pageSize, pageSize*(pageIndex-1))
 	if err != nil {
 		return nil, err
 	}
